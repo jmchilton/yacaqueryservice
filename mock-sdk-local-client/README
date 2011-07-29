@@ -1,0 +1,6 @@
+This directory is a stub meant to mimic a local-client project created
+from a caCORE SDK. yacaqueryservice targets such a client to build CXF
+web services. Once you have configured and built a caCORE SDK project,
+the local-client project can be found in the following directory.
+
+project/target/dist/exploded/output/*projectname*/package/local-client

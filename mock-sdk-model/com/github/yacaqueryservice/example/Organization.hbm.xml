@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="com.github.yacaqueryservice.example" auto-import="false" default-cascade="none">
+	<class name="Organization" table="ORGANIZATION" lazy="true" polymorphism="explicit" abstract="false" >
+		<cache usage="read-write" />
+		<id name="id" type="string" column="ID">
+			<generator class="assigned"/>			
+		</id>
+		<!-- Attributes mapping for the Organization class -->
+		<property name="name" type="string" column="NAME"/>
+		<property name="identifier" type="string" column="IDENTIFIER"/>
+		<property name="street" type="string" column="STREET"/>
+		<property name="city" type="string" column="CITY"/>
+		<property name="country" type="string" column="COUNTRY"/>
+		<property name="state" type="string" column="STATE"/>
+		<property name="zipCode" type="string" column="ZIP_CODE"/>
+		<set name="units" lazy="true" cascade="none" inverse="false">
+			<cache usage="read-write" />
+			<key column="ORGANIZATION_ID" not-null="false" />
+			<one-to-many class="com.github.yacaqueryservice.example.Unit"/>
+		</set>
+	</class>
+</hibernate-mapping>

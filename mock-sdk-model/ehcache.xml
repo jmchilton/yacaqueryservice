@@ -1,0 +1,37 @@
+  
+<ehcache>
+
+	<diskStore path="java.io.tmpdir"/>
+
+	<defaultCache
+		maxElementsInMemory="500"
+		eternal="false"
+		timeToIdleSeconds="1800"
+		timeToLiveSeconds="100000"
+		overflowToDisk="true"/>
+		
+
+				
+	<cache name="com.github.yacaqueryservice.example.Unit"
+		maxElementsInMemory="500"
+		eternal="false"
+		timeToIdleSeconds="1800"
+		timeToLiveSeconds="100000"
+		overflowToDisk="true"/>
+	
+	<cache name="com.github.yacaqueryservice.example.Organization"
+		maxElementsInMemory="500"
+		eternal="false"
+		timeToIdleSeconds="1800"
+		timeToLiveSeconds="100000"
+		overflowToDisk="true"/>
+	
+	<cache name="com.github.yacaqueryservice.example.Organization.units"
+		maxElementsInMemory="500"
+		eternal="false"
+		timeToIdleSeconds="1800"
+		timeToLiveSeconds="100000"
+		overflowToDisk="true"/>
+				
+	
+</ehcache>

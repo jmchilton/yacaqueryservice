@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="yacaqueryservice" default="all" basedir="."  xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>
+    This project contains some light weight Java classes that can
+    enable a developer to quickly build a CXF powered Web Service from
+    a caCORE SDK model. This Web Service will allow quering data
+    sources with a much richer query language than CQL.
+  </description>
+  
+  <property environment="env" />
+
+  <property file="project.properties" />
+  <property file="build.properties"/>
+  <import file="${basedir}/build-helper.xml" />
+
+  <target name="define-classpaths" depends="prepare">
+    <path id="compile.classpath">
+      <fileset dir="${ext.dir}" includes="**/*.jar" />
+      <fileset dir="${model.client.lib.dir}" includes="**/*.jar" />
+    </path>
+    <path id="run.classpath">
+      <pathelement location="${build.classes.dir}" />
+      <pathelement location="${src.dir}" />
+      <path refid="compile.classpath" />
+    </path>
+    <path id="test.classpath">
+      <pathelement location="${build.instrumented.classes.dir}" />
+      <pathelement location="${build.test.classes.dir}" />
+      <pathelement location="${test.dir}" />
+      <fileset dir="${model.client.lib.dir}" includes="**/*.jar" />
+      <pathelement location="${model.client.conf.dir}" />
+      <path refid="run.classpath" />
+    </path>
+  </target>
+
+  <target name="prepare">
+    <mkdir dir="${build.dir}" />
+    <mkdir dir="${build.jar.dir}" />
+    <mkdir dir="${build.classes.dir}" />
+    <mkdir dir="${build.model.classes.dir}" />
+    <mkdir dir="${build.test.classes.dir}" />
+  </target>
+
+  <target name="clean">
+    <delete dir="${ext.dir}" />
+    <delete dir="${build.dir}" />
+  </target>
+
+
+  <target name="compile-model" depends="prepare,resolve-dependencies,define-classpaths">
+    <compile-java destdir="${build.model.classes.dir}">
+      <src path="${model.src.dir}" />
+      <classpath refid="compile.classpath" />
+    </compile-java>
+  </target>
+
+  <target name="package-models" depends="compile-model">
+    <jar destfile="${model.client.lib.dir}/example-beans.jar">
+      <fileset dir="${build.model.classes.dir}" includes="**/*.class"/>
+      <fileset dir="${model.src.dir}" includes="**/*.java" />
+    </jar>
+    <jar destfile="${model.client.lib.dir}/example-orm.jar">
+      <fileset dir="${model.src.dir}" includes="**/*.hbm.xml" />
+      <fileset dir="${model.src.dir}" includes="hibernate.cfg.xml" />
+      <fileset dir="${model.src.dir}" includes="ehcache.xml" />
+    </jar>
+    <jar destfile="${model.client.lib.dir}/example-schema.jar">
+      <fileset dir="${model.src.dir}" includes="**/*xsd" />
+    </jar>
+  </target>
+
+  <target name="compile" depends="prepare,resolve-dependencies,define-classpaths">
+    <compile-java destdir="${build.classes.dir}">
+      <src path="${src.dir}" />
+      <classpath refid="compile.classpath" />
+    </compile-java>
+  </target>
+
+  <target name="compile-tests" depends="compile">
+    <compile-java destdir="${build.test.classes.dir}">
+      <src path="${test.dir}" />
+      <classpath refid="run.classpath" />
+    </compile-java>
+  </target>
+
+  <target name="jar" depends="compile">
+    <jar destfile="${build.jar.dir}/yacaqueryservice.jar" basedir="${build.classes.dir}">
+      <fileset dir="${src.dir}" />
+    </jar>
+  </target>
+  
+  <target name="test" depends="compile-tests">
+    <test />
+  </target>
+
+  <target name="test-coverage" depends="compile-tests">
+    <setupcobertura filter="+com.github.yucaqueryservice.*" />
+    <test />
+    <finishcobertura />
+  </target>
+
+  <target name="javadoc" depends="compile">
+    <!-- TODO -->
+    <javadoc destdir="${build.dir}/doc">
+      <packageset dir="${src.dir}" />
+      <classpath refid="compile.classpath" />
+      <link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
+      <link href="http://static.springsource.org/spring/docs/3.0.x/javadoc-api/" />
+    </javadoc>
+  </target>
+
+  <target name="all" depends="jar" />
+
+  <target name="dist" depends="publish,javadoc,test-coverage,findbugs,checkstyle">
+    <mkdir dir="${build.dir}/dist" />
+    <copy toDir="${build.dir}/dist">
+      <fileset dir="${build.dir}" includes="doc/**" />
+    </copy>
+    <zip destfile="${build.dir}/yucaqueryservice-dist.zip">
+      <zipfileset dir="${build.dir}/dist" prefix="yucaqueryservice"/>
+    </zip>
+  </target>
+
+</project>

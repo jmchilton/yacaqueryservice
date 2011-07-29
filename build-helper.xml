@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="Helper Ant Definitions" xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>
+    Helper ant definitions.
+  </description>
+  
+  <property file="${basedir}/project.properties" />
+	
+  <!-- Directory to put loccated artifacts into, by convention this is the ext.dir -->
+  <property name="ivy.resolved.artifacts.dir" location="${ext.dir}" />
+  <!-- Pattern used to determine where to place resolved dependencies -->
+  <property name="ivy.resolved.artifacts.pattern" value="${ivy.resolved.artifacts.dir}/dependencies/[conf]/jars/[originalname](.[ext])" />
+
+  <!-- Directory generated artifacts is found in, by convention this is the build directory. -->
+  <property name="ivy.generated.artifacts.dir" location="${build.dir}" />
+  <!-- Pattern used to locate generated artifacts -->
+  <property name="ivy.generated.artifacts.pattern" value="${ivy.generated.artifacts.dir}/[type]s/[artifact].[ext]" />
+
+  <!-- Ivy configurations to resolve, by convention each project has a private all configuration 
+         that extends all other configurations. -->
+  <property name="ivy.resolve.configurations" value="all" />
+        
+  <!-- Ivy artifact types to fetch, by default only jars are fetched. -->
+  <property name="ivy.resolve.type" value="jar,bundle" />
+
+  <!-- Ivy xml file -->
+  <property name="ivy.xml.file" location="${basedir}/ivy.xml" />
+
+  <path id="ivy.lib.path">
+    <fileset dir="${tools.dir}" includes="ivy-*.jar" />
+  </path>
+
+  <taskdef resource="net/sf/antcontrib/antlib.xml">
+    <classpath>
+      <fileset dir="${tools.dir}">
+        <include name="ant-contrib*.jar" />
+      </fileset>
+    </classpath>
+  </taskdef>
+
+  <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant">
+    <classpath>
+      <fileset dir="${tools.dir}">
+        <include name="ivy*.jar" />
+      </fileset>
+    </classpath>
+  </taskdef>
+
+  <!-- Ivy setup -->
+  <ivy:settings id="ivy.instance" file="${basedir}/ivysettings.xml" />
+
+  <ivy:info file="${ivy.xml.file}" />
+
+  <!-- Ivy targets. -->
+  <target name="resolve-dependencies" description="This target is used to resolve the project's dependencies, and copy them locally">
+    <ivy:resolve />
+    <ivy:retrieve conf="${ivy.resolve.configurations}" pattern="${ivy.resolved.artifacts.pattern}" sync="true" type="${ivy.resolve.type}" />
+  </target>
+
+  <target name="report-dependencies" depends="resolve-dependencies">
+    <ivy:report todir="${ivy.resolved.artifacts.dir}" graph="false" />
+  </target>
+	
+  <target name="publish" depends="resolve-dependencies,all">
+    <ivy:publish pubrevision="${project.version}" resolver="local-repo" update="true" overwrite="true">
+      <artifacts pattern="${ivy.generated.artifacts.pattern}" />
+    </ivy:publish>
+  </target>
+
+  <!--        -->
+  <!-- Macros -->
+  <!--        -->
+  <macrodef name="compile-java">
+    <attribute name="destdir" />
+    <element name="javac-elements" implicit="true" />
+    <sequential>
+      <javac debug="true" debuglevel="lines,vars,source" target="${javac.target}" destdir="@{destdir}" fork="true" >
+        <javac-elements />
+      </javac>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="setupcobertura">
+    <attribute name="filter" default="" />
+    <sequential>
+      <property name="cobertura.dir" location="${tools.dir}/cobertura-1.9.4.1/" />
+      <path id="cobertura.classpath">
+        <fileset dir="${cobertura.dir}">
+          <include name="cobertura.jar" />
+          <include name="lib/**/*.jar" />
+        </fileset>
+      </path>
+      <taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
+
+      <delete dir="${build.instrumented.classes.dir}" />
+      <delete file="${buid.coverage.data.file}" />
+      <cobertura-instrument todir="${build.instrumented.classes.dir}"
+                            datafile="${build.coverage.data.file}">
+        <fileset dir="${build.classes.dir}">
+          <include name="**/*.class"/>
+        </fileset>
+      </cobertura-instrument>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="finishcobertura">
+    <sequential>
+      <cobertura-report datafile="${build.coverage.data.file}" 
+                        srcdir="${src.dir}" 
+                        format="html"
+                        destdir="${build.coverage.dir}"/>
+      <cobertura-report datafile="${build.coverage.data.file}"
+                        srcdir="${src.dir}"
+                        format="xml"
+                        destdir="${build.coverage.dir}" />
+    </sequential>
+  </macrodef>
+
+  <target name="setup-findbugs">
+    <available file="${tools.dir}/findbugs" property="shared.findbugs.dir.exists" />
+    <if>
+      <isset property="env.FINDBUGS_HOME"/>
+      <then>
+        <echo message="Setting findbugs home to ${env.FINDBUGS}" />
+        <property name="findbugs.home" value="${env.FINDBUGS}" />
+      </then>
+      <elseif>
+        <not>
+          <isset property="findbugs.home" />
+        </not>
+        <then>
+          <echo message="Did not find FINDBUGS_HOME environment variable. Checking if local findbugs already exists --- ${shared.findbugs.dir.exists}" />
+          <if>
+            <not>
+              <isset property="shared.findbugs.dir.exists" />
+            </not>
+            <then>
+              <unzip src="${tools.dir}/findbugs-1.3.9.zip" dest="${tools.dir}" />
+              <move file="${tools.dir}/findbugs-1.3.9" tofile="${tools.dir}/findbugs" />
+            </then>
+          </if>
+          <echo message="Settings findbugs home to ${tools.dir}/findbugs" />
+          <property name="findbugs.home" value="${tools.dir}/findbugs" />
+        </then>
+      </elseif>
+    </if>
+  </target>
+
+  <macrodef name="runfindbugs">
+    <attribute name="output" default="xml" />
+    <attribute name="build" default="${build.dir}" />
+    <attribute name="classpath" default="compile.classpath" />
+    <attribute name="effort" default="min" />
+    <sequential>
+      <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
+        <classpath>
+          <fileset dir="${findbugs.home}" includes="**/*.jar" />
+        </classpath>
+      </taskdef>
+      <findbugs home="${findbugs.home}" output="@{output}" outputFile="@{build}/findbugs.@{output}" reportLevel="low" effort="@{effort}" excludeFilter="${basedir}/findbugs_excludes.xml" jvmargs="-Xmx512m">
+        <class location="${build.classes.dir}" />
+        <sourcePath path="${src.dir}" />
+        <auxClasspath refid="@{classpath}" />
+      </findbugs>
+    </sequential>
+  </macrodef> 
+
+  <target name="findbugs" depends="compile,setup-findbugs">
+    <runfindbugs />
+  </target>
+
+  <macrodef name="runcheckstyle">
+    <attribute name="build" default="${build.dir}" />
+    <attribute name="src" default="${src.dir}" />
+    <sequential>
+      <taskdef resource="checkstyletask.properties" classpath="${tools.dir}/checkstyle-5.3-all.jar" />
+      <checkstyle config="${basedir}/checkstyle_style.xml" failOnViolation="false">
+        <fileset dir="@{src}" includes="**/*.java"/>
+        <formatter type="xml" toFile="@{build}/checkstyle-result.xml"/>
+        <property key="suppressions" value="${basedir}/checkstyle_suppressions.xml" />
+      </checkstyle>
+    </sequential>
+  </macrodef>
+
+  <target name="checkstyle" depends="prepare">
+    <runcheckstyle />
+  </target>
+
+  <macrodef name="test">
+    <sequential>
+      <delete dir="${build.dir}/test" />
+      <mkdir dir="${build.dir}/test" />
+      <junit printsummary="yes" haltonfailure="no" fork="on" maxmemory="1G">
+        <sysproperty key="net.sourceforge.cobertura.datafile"
+                     file="${build.coverage.data.file}" />
+        <formatter type="xml"/>
+        <classpath refid="test.classpath"/>
+        <batchtest fork="yes" todir="${build.dir}/test">
+          <fileset dir="${build.test.classes.dir}">
+            <include name="**/*UnitTest.class"/>
+            <!-- a '$' in the filename means it's an inner class -->
+            <exclude name="**/*$*"/>
+          </fileset>
+        </batchtest>
+      </junit>
+    </sequential>
+  </macrodef>
+  
+  
+</project>

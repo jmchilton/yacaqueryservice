@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:jaxws="http://cxf.apache.org/jaxws"
+       xsi:schemaLocation="
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd       
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd">
+
+  <context:annotation-config />
+
+  <import resource="engine-context.xml" />
+  
+  <bean id="exampleService" class="com.github.yacaqueryservice.example.service.ExampleServiceImpl">
+  </bean>
+  
+  <import resource="classpath:META-INF/cxf/cxf.xml" />
+  <jaxws:endpoint 
+    id="exampleWebService" 
+    implementor="#exampleService" 
+    bus="cxf" 
+    address="http://localhost:9000/query"
+    endpointName="e:queryServiceEndpoint"
+    serviceName="s:queryService"
+    xmlns:e="http://service.jaxws.cxf.apache.org/endpoint"
+    xmlns:s="http://service.jaxws.cxf.apache.org/service"
+    depends-on="exampleEngine">
+  </jaxws:endpoint>
+      
+</beans>
